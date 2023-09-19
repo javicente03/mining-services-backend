@@ -42,7 +42,26 @@ export const CreateSolicitud = async (req: Request, res: Response) => {
             });
         }
 
-        return res.status(200).json({ message: "Solicitud creada correctamente" });
+        const newSolicitud = await prisma.solicitud.findFirst({
+            where: {
+                id: solicitud.id
+            },
+            include: {
+                tipos_trabajos_solicitud: {
+                    select: {
+                        description: true,
+                        tipoTrabajoId: true,
+                        tipoTrabajo: {
+                            select: {
+                                name: true
+                            }
+                        }
+                    }
+                },
+            }
+        })
+
+        return res.status(200).json({ message: "Solicitud creada correctamente", solicitud: newSolicitud });
 
     } catch (error: any) {
         return res.status(400).json({ error: error.message });
