@@ -40,6 +40,49 @@ model Tipos_Trabajos_Solicitud {
   solicitud_tipos_trabajos Solicitud_Tipos_Trabajos[]
 }
 
+model Equipo_Trabajo_Solicitud {
+  id        Int      @id @default(autoincrement())
+  name    String   @db.VarChar(255)
+  deleted   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  solicitud_equipo_trabajo Solicitud_Equipo_Trabajo[]
+}
+
+model Componente_Solicitud {
+  id        Int      @id @default(autoincrement())
+  name    String   @db.VarChar(255)
+  type_field    String   @db.VarChar(255) @default("text")
+  deleted   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  solicitud_componente Solicitud_Componente[]
+  opciones_componente_solicitud Opciones_Componente_Solicitud[]
+}
+
+model Opciones_Componente_Solicitud {
+  id        Int      @id @default(autoincrement())
+  name    String   @db.VarChar(255)
+  deleted   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  componente_solicitudId    Int?
+  componente_solicitud      Componente_Solicitud?    @relation(fields: [componente_solicitudId], references: [id])
+}
+
+model Servicio_Terreno_Solicitud {
+  id        Int      @id @default(autoincrement())
+  name    String   @db.VarChar(255)
+  deleted   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  solicitud_servicio_terreno Solicitud_Servicio_Terreno[]
+}
+
+model Registro_Fotografico_Solicitud {
+  id        Int      @id @default(autoincrement())
+  url   String   @db.VarChar(255)
+  createdAt DateTime @default(now())
+  solicitudId    Int?
+  solicitud      Solicitud?    @relation(fields: [solicitudId], references: [id])
+}
+
 model Solicitud {
   id        Int      @id @default(autoincrement())
   userId    Int?
@@ -47,7 +90,13 @@ model Solicitud {
   status    String   @default("pending") @db.VarChar(255)
   description String @db.VarChar(2500)
   createdAt DateTime @default(now())
+  isOT Boolean @default(false)
+  type_work String @db.VarChar(255) @default("equipo")
   tipos_trabajos_solicitud Solicitud_Tipos_Trabajos[]
+  equipo_trabajo_solicitud Solicitud_Equipo_Trabajo[]
+  componente_solicitud Solicitud_Componente[]
+  servicio_terreno_solicitud Solicitud_Servicio_Terreno[]
+  registro_fotografico_solicitud Registro_Fotografico_Solicitud[]
 }
 
 model Solicitud_Tipos_Trabajos {
@@ -56,6 +105,36 @@ model Solicitud_Tipos_Trabajos {
   solicitud      Solicitud?    @relation(fields: [solicitudId], references: [id])
   tipoTrabajoId    Int?
   tipoTrabajo      Tipos_Trabajos_Solicitud?    @relation(fields: [tipoTrabajoId], references: [id])
+  description String @db.VarChar(2500)
+  createdAt DateTime @default(now())
+}
+
+model Solicitud_Equipo_Trabajo {
+  id        Int      @id @default(autoincrement())
+  solicitudId    Int?
+  solicitud      Solicitud?    @relation(fields: [solicitudId], references: [id])
+  equipoTrabajoId    Int?
+  equipoTrabajo      Equipo_Trabajo_Solicitud?    @relation(fields: [equipoTrabajoId], references: [id])
+  description String @db.VarChar(2500)
+  createdAt DateTime @default(now())
+}
+
+model Solicitud_Componente {
+  id        Int      @id @default(autoincrement())
+  solicitudId    Int?
+  solicitud      Solicitud?    @relation(fields: [solicitudId], references: [id])
+  componenteId    Int?
+  componente      Componente_Solicitud?    @relation(fields: [componenteId], references: [id])
+  description String @db.VarChar(2500)
+  createdAt DateTime @default(now())
+}
+
+model Solicitud_Servicio_Terreno {
+  id        Int      @id @default(autoincrement())
+  solicitudId    Int?
+  solicitud      Solicitud?    @relation(fields: [solicitudId], references: [id])
+  servicioTerrenoId    Int?
+  servicioTerreno      Servicio_Terreno_Solicitud?    @relation(fields: [servicioTerrenoId], references: [id])
   description String @db.VarChar(2500)
   createdAt DateTime @default(now())
 }
