@@ -157,13 +157,48 @@ export const GetSolicitud = async (req: Request, res: Response) => {
 // Retornar los tipos de trabajos disponibles
 export const GetTiposTrabajos = async (req: Request, res: Response) => {
     try {
-        const tiposTrabajos = await prisma.tipos_Trabajos_Solicitud.findMany();
+        const tiposTrabajos = await prisma.tipos_Trabajos_Solicitud.findMany({
+            where: { deleted: false }
+        });
         return res.status(200).json({ data: tiposTrabajos });
     } catch (error: any) {
         return res.status(400).json({ error: error.message });
     }
 }
 
+export const GetFormEquipos = async (req: Request, res: Response) => {
+    try {
+        const equipos = await prisma.equipo_Trabajo_Solicitud.findMany({ where: { deleted: false } });
+
+        return res.status(200).json({ data: equipos });
+    } catch (error: any) {
+        return res.status(400).json({ error: error.message });
+    }
+}
+
+export const GetFormComponentes = async (req: Request, res: Response) => {
+    try {
+        const componentes = await prisma.componente_Solicitud.findMany({ where: { deleted: false }, include: { opciones_componente_solicitud: {
+            where: { deleted: false }
+        } } });
+
+        return res.status(200).json({ data: componentes });
+    } catch (error: any) {
+        return res.status(400).json({ error: error.message });
+    }
+}
+
+export const GetFormServiciosTerreno = async (req: Request, res: Response) => {
+    try {
+        const servicios = await prisma.servicio_Terreno_Solicitud.findMany({ where: { deleted: false } });
+
+        return res.status(200).json({ data: servicios });
+    } catch (error: any) {
+        return res.status(400).json({ error: error.message });
+    }
+}
+
+// TEST CREATE
 export const CreateTestTypes = async (req: Request, res: Response) => {
     try {
         const tiposTrabajos = await prisma.tipos_Trabajos_Solicitud.createMany({
@@ -196,6 +231,124 @@ export const CreateTestTypes = async (req: Request, res: Response) => {
         });
 
         return res.status(200).json({ message: "Tipos de trabajos creados correctamente" });
+    } catch (error: any) {
+        return res.status(400).json({ error: error.message });
+    }
+}
+
+export const CreateEquiposTest = async (req: Request, res: Response) => {
+    try {
+        const equipos = await prisma.equipo_Trabajo_Solicitud.createMany({
+            data: [
+                {
+                    name: 'Marca',
+                },
+                {
+                    name: 'Modelo',
+                },
+                {
+                    name: 'Serie',
+                },
+                {
+                    name: 'N° Interno',
+                },
+                {
+                    name: 'N° Interno del Cliente',
+                },
+                {
+                    name: 'Horometro',
+                }
+            ]
+        });
+
+        return res.status(200).json({ message: "Equipos creados correctamente" });
+
+    } catch (error: any) {
+        return res.status(400).json({ error: error.message });
+    }
+}
+
+export const CreateComponentesTest = async (req: Request, res: Response) => {
+    try {
+        const componentes = await prisma.componente_Solicitud.createMany({
+            data: [
+                {
+                    name: 'Marca',
+                },
+                {
+                    name: 'Tipo de Componente',
+                    type_field: 'select',
+                },
+                {
+                    name: 'Serie',
+                },
+                {
+                    name: 'N° Interno',
+                },
+                {
+                    name: 'N° Interno del Cliente',
+                },
+            ]
+        });
+
+        const field_type = await prisma.componente_Solicitud.findFirst({ where: { name: 'Tipo de Componente' } });
+
+        const tiposComponentes = await prisma.opciones_Componente_Solicitud.createMany({
+            data: [
+                {
+                    name: 'Motor',
+                    componente_solicitudId: field_type?.id
+                },
+                {
+                    name: 'Convertidor',
+                    componente_solicitudId: field_type?.id
+                },
+                {
+                    name: 'Transmisión',
+                    componente_solicitudId: field_type?.id
+                },
+                {
+                    name: 'Eje Diferencial Delantero',
+                    componente_solicitudId: field_type?.id
+                },
+                {
+                    name: 'Eje Diferencial Trasero',
+                    componente_solicitudId: field_type?.id
+                },
+                {
+                    name: 'Mando Final',
+                    componente_solicitudId: field_type?.id
+                }
+            ]
+        });
+
+        return res.status(200).json({ message: "Componentes creados correctamente" });
+
+    } catch (error: any) {
+        return res.status(400).json({ error: error.message });
+    }
+}
+
+export const CreateServicioTerrenoTest = async (req: Request, res: Response) => {
+    try {
+        const servicios = await prisma.servicio_Terreno_Solicitud.createMany({
+            data: [
+                {
+                    name: 'Diagnóstico de fallas',
+                },
+                {
+                    name: 'Testeo Instrumental',
+                },
+                {
+                    name: 'Mantención',
+                },
+                {
+                    name: 'Otros'
+                }
+            ]
+        });
+
+        return res.status(200).json({ message: "Servicios creados correctamente" });
     } catch (error: any) {
         return res.status(400).json({ error: error.message });
     }
