@@ -10,6 +10,7 @@ export const GetSolicitudes = async (req: Request, res: Response) => {
         const { skip, limit } = req.query;
 
         const requests = await prisma.solicitud.findMany({
+            where: { status_ot: null },
             include: {
                 tipos_trabajos_solicitud: {
                     select: {
@@ -71,13 +72,13 @@ export const GetSolicitudes = async (req: Request, res: Response) => {
                 motivo_rechazo_solicitud: true
             },
             skip: skip ? Number(skip) : 0,
-            take: limit ? Number(limit) : 0,
+            take: limit ? Number(limit) : undefined,
             orderBy: {
                 id: 'desc'
             }
         })
 
-        const total = await prisma.solicitud.count()
+        const total = await prisma.solicitud.count({ where: { status_ot: null } })
 
         return res.json({ data: requests, total: total })
 
@@ -190,6 +191,7 @@ export const ResponseSolicitud = async (req: Request, res: Response) => {
             },
             data: {
                 status: response,
+                status_ot: response === 'approved' ? 'pending' : null,
                 // isOT: response === 'approved' ? true : false
             }
         })

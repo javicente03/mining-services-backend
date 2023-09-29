@@ -18,6 +18,7 @@ model User {
   lastname  String   @db.VarChar(255)
   password  String   @db.VarChar(255)
   role      String   @default("user") @db.VarChar(255)
+  thumbnail String?  @db.VarChar(255)
   active    Boolean  @default(true)
   deleted   Boolean  @default(false)
   createdAt DateTime @default(now())
@@ -104,6 +105,7 @@ model Solicitud {
   description String @db.VarChar(2500)
   createdAt DateTime @default(now())
   isOT Boolean @default(false)
+  status_ot String? @db.VarChar(255)
   type_work String @db.VarChar(255) @default("equipo")
   tipos_trabajos_solicitud Solicitud_Tipos_Trabajos[]
   equipo_trabajo_solicitud Solicitud_Equipo_Trabajo[]

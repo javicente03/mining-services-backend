@@ -312,7 +312,7 @@ export const GetSolicitudes = async (req: Request, res: Response) => {
 
         const requests = await prisma.solicitud.findMany({
             where: {
-                userId: user.id
+                userId: user.id, isOT: false
             },
             include: {
                 tipos_trabajos_solicitud: {
@@ -374,7 +374,7 @@ export const GetSolicitudes = async (req: Request, res: Response) => {
 
         const total = await prisma.solicitud.count({
             where: {
-                userId: idUser.id
+                userId: idUser.id, isOT: false
             },
         })
 
