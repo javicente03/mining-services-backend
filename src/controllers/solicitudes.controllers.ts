@@ -1,11 +1,80 @@
 import { Request, Response } from "express";
+import config from "../config";
+import EmailSender from "../helpers/email/sendEmail";
+import { EmailNuevaSolicitudTemplate } from "../helpers/email/templates";
 import ObtainUser from "../utils/obtainUser";
 import prisma from "../utils/prismaClient";
+
+// export const CreateSolicitudRespaldo = async (req: Request, res: Response) => {
+//     try {
+//         const {
+//             works, description
+//         } = req.body;
+//         const idUser = await ObtainUser(req);
+//         const user = await prisma.user.findUnique({ where: { id: idUser.id } });
+
+//         if (!user) throw new Error("Usuario no encontrado");
+//         if (!works) throw new Error("Debe enviar los trabajos a realizar");
+//         if (!description || description.trim() === "") throw new Error("Debe enviar una descripción de la solicitud");
+
+//         if (!Array.isArray(works)) throw new Error("Debe enviar un arreglo de trabajos");
+//         if (works.length === 0) throw new Error("Debe enviar al menos un trabajo");
+
+//         const solicitud = await prisma.solicitud.create({
+//             data: {
+//                 description: description.trim(),
+//                 userId: user.id
+//             }
+//         });
+
+//         for (let i = 0; i < works.length; i++) {
+
+//             const work = works[i];
+//             if (!work.id) continue;
+//             if (!work.description || work.description.trim() === "") continue;
+
+//             const type = await prisma.tipos_Trabajos_Solicitud.findUnique({ where: { id: works[i].id } });
+//             if (!type) continue;
+
+//             await prisma.solicitud_Tipos_Trabajos.create({
+//                 data: {
+//                     description: work.description,
+//                     solicitudId: solicitud.id,
+//                     tipoTrabajoId: type.id
+//                 }
+//             });
+//         }
+
+//         const newSolicitud = await prisma.solicitud.findFirst({
+//             where: {
+//                 id: solicitud.id
+//             },
+//             include: {
+//                 tipos_trabajos_solicitud: {
+//                     select: {
+//                         description: true,
+//                         tipoTrabajoId: true,
+//                         tipoTrabajo: {
+//                             select: {
+//                                 name: true
+//                             }
+//                         }
+//                     }
+//                 },
+//             }
+//         })
+
+//         return res.status(200).json({ message: "Solicitud creada correctamente", solicitud: newSolicitud });
+
+//     } catch (error: any) {
+//         return res.status(400).json({ error: error.message });
+//     }
+// }
 
 export const CreateSolicitud = async (req: Request, res: Response) => {
     try {
         const {
-            works, description
+            works, description, form_equipos, form_components, form_terreno, type_work
         } = req.body;
         const idUser = await ObtainUser(req);
         const user = await prisma.user.findUnique({ where: { id: idUser.id } });
@@ -14,32 +83,140 @@ export const CreateSolicitud = async (req: Request, res: Response) => {
         if (!works) throw new Error("Debe enviar los trabajos a realizar");
         if (!description || description.trim() === "") throw new Error("Debe enviar una descripción de la solicitud");
 
-        if (!Array.isArray(works)) throw new Error("Debe enviar un arreglo de trabajos");
-        if (works.length === 0) throw new Error("Debe enviar al menos un trabajo");
+        if (type_work !== 'equipo' && type_work !== 'maestranza' && type_work !== 'componente' && type_work !== 'servicio_terreno' && type_work !== 'null') throw new Error("Debe enviar un tipo de trabajo válido");
+
+        // Tipo de trabajo: Equipo ----------------------------------------------
+        if (type_work === 'equipo') {
+            if (!form_equipos) throw new Error("Data inválida");
+            if (!Array.isArray(form_equipos)) throw new Error("Data inválida");
+            const fields = await prisma.equipo_Trabajo_Solicitud.findMany({ where: { deleted: false }, include: { opciones_equipo_trabajo_solicitud: { where: { deleted: false } } } });
+
+            for (let i = 0; i < fields.length; i++) {
+                const field = fields[i];
+
+                // Si no existe el campo en la data enviada
+                if (!form_equipos.find((item: any) => item.id === field.id)) throw new Error(`No se envio información del campo ${field.name}`);
+                if (field.type_field === 'text') {
+                    // Si existe el campo pero no tiene valor o el valor está vacío
+                    if (!form_equipos.find((item: any) => item.id === field.id).description || form_equipos.find((item: any) => item.id === field.id).description.trim() === "") throw new Error(`Debe enviar una descripción para el campo ${field.name}`);
+                } else if (field.type_field === 'select') {
+                    // Si existe el campo pero no tiene valor o el valor no es un número
+                    if (!form_equipos.find((item: any) => item.id === field.id).opcion_componente_solicitud_id || isNaN(form_equipos.find((item: any) => item.id === field.id).opcion_componente_solicitud_id)) throw new Error(`Debe enviar una opción válida para el campo ${field.name}`);
+                    // Si el valor no existe en la base de datos
+                    let value_opt = Number(form_equipos.find((item: any) => item.id === field.id).opcion_componente_solicitud_id);
+                    if (!field.opciones_equipo_trabajo_solicitud.find((item: any) => item.id === value_opt)) throw new Error(`Debe enviar una opción válida para el campo ${field.name}`);
+                }
+            }
+        }
+
+        // Tipo de trabajo: Componente ----------------------------------------------
+        if (type_work === 'componente') {
+            if (!form_components) throw new Error("Data inválida");
+            if (!Array.isArray(form_components)) throw new Error("Data inválida");
+            const fields = await prisma.componente_Solicitud.findMany({ where: { deleted: false }, include: { opciones_componente_solicitud: { where: { deleted: false } } } });
+
+            for (let i = 0; i < fields.length; i++) {
+                const field = fields[i];
+
+                // Si no existe el campo en la data enviada
+                if (!form_components.find((item: any) => item.id === field.id)) throw new Error(`No se envio información del campo ${field.name}`);
+                if (field.type_field === 'text') {
+                    // Si existe el campo pero no tiene valor o el valor está vacío
+                    if (!form_components.find((item: any) => item.id === field.id).description || form_components.find((item: any) => item.id === field.id).description.trim() === "") throw new Error(`Debe enviar una descripción para el campo ${field.name}`);
+                } else if (field.type_field === 'select') {
+                    // Si existe el campo pero no tiene valor o el valor no es un número
+                    if (!form_components.find((item: any) => item.id === field.id).opcion_componente_solicitud_id || isNaN(form_components.find((item: any) => item.id === field.id).opcion_componente_solicitud_id)) throw new Error(`Debe enviar una opción válida para el campo ${field.name}`);
+                    // Si el valor no existe en la base de datos
+                    let value_opt = Number(form_components.find((item: any) => item.id === field.id).opcion_componente_solicitud_id);
+                    if (!field.opciones_componente_solicitud.find((item: any) => item.id === value_opt)) throw new Error(`Debe enviar una opción válida para el campo ${field.name}`);
+                }
+            }
+        }
 
         const solicitud = await prisma.solicitud.create({
             data: {
                 description: description.trim(),
-                userId: user.id
+                userId: user.id,
+                type_work: type_work
             }
         });
 
-        for (let i = 0; i < works.length; i++) {
+        // Tipo de trabajo: Equipo ----------------------------------------------
+        if (type_work === 'equipo') {
+            for (let i = 0; i < form_equipos.length; i++) {
+                const field = form_equipos[i];
+                await prisma.solicitud_Equipo_Trabajo.create({
+                    data: {
+                        description: field.type_field === 'text' ? field.description : '',
+                        solicitudId: solicitud.id,
+                        equipoTrabajoId: field.id,
+                        idOpcion: field.type_field === 'select' ? field.opcion_componente_solicitud_id : null
+                    }
+                });
+            }
+        }
 
-            const work = works[i];
-            if (!work.id) continue;
-            if (!work.description || work.description.trim() === "") continue;
+        // Tipo de trabajo: Componente ----------------------------------------------
+        if (type_work === 'componente') {
+            for (let i = 0; i < form_components.length; i++) {
+                const field = form_components[i];
+                await prisma.solicitud_Componente.create({
+                    data: {
+                        description: field.type_field === 'text' ? field.description : '',
+                        solicitudId: solicitud.id,
+                        componenteId: field.id,
+                        idOpcion: field.type_field === 'select' ? field.opcion_componente_solicitud_id : null
+                    }
+                });
+            }
+        }
 
-            const type = await prisma.tipos_Trabajos_Solicitud.findUnique({ where: { id: works[i].id } });
-            if (!type) continue;
+        // Tipo de trabajo: Maestranza ----------------------------------------------
+        if (type_work === 'maestranza') {
+            if (!Array.isArray(works)) throw new Error("Debe enviar un arreglo de trabajos");
+            if (works.length === 0) throw new Error("Debe enviar al menos un trabajo");
+    
+            for (let i = 0; i < works.length; i++) {
 
-            await prisma.solicitud_Tipos_Trabajos.create({
-                data: {
-                    description: work.description,
-                    solicitudId: solicitud.id,
-                    tipoTrabajoId: type.id
-                }
-            });
+                const work = works[i];
+                if (!work.id) continue;
+                if (!work.description || work.description.trim() === "") continue;
+
+                const type = await prisma.tipos_Trabajos_Solicitud.findUnique({ where: { id: works[i].id } });
+                if (!type) continue;
+
+                await prisma.solicitud_Tipos_Trabajos.create({
+                    data: {
+                        description: work.description,
+                        solicitudId: solicitud.id,
+                        tipoTrabajoId: type.id
+                    }
+                });
+            }
+        }
+
+        // Tipo de trabajo: Servicio de terreno ----------------------------------------------
+        if (type_work === 'servicio_terreno') {
+            if (!form_terreno) throw new Error("Data inválida");
+            if (!Array.isArray(form_terreno)) throw new Error("Data inválida");
+            
+            for (let i = 0; i < form_terreno.length; i++) {
+
+                const field = form_terreno[i];
+                if (!field.id) continue;
+                if (!field.description || field.description.trim() === "") continue;
+
+                const type = await prisma.servicio_Terreno_Solicitud.findUnique({ where: { id: field.id } });
+                if (!type) continue;
+
+                await prisma.solicitud_Servicio_Terreno.create({
+                    data: {
+                        description: field.description,
+                        solicitudId: solicitud.id,
+                        servicioTerrenoId: type.id
+                    }
+                });
+            }
         }
 
         const newSolicitud = await prisma.solicitud.findFirst({
@@ -47,6 +224,7 @@ export const CreateSolicitud = async (req: Request, res: Response) => {
                 id: solicitud.id
             },
             include: {
+                user: true,
                 tipos_trabajos_solicitud: {
                     select: {
                         description: true,
@@ -58,8 +236,64 @@ export const CreateSolicitud = async (req: Request, res: Response) => {
                         }
                     }
                 },
+                equipo_trabajo_solicitud: {
+                    select: {
+                        description: true,
+                        equipoTrabajoId: true,
+                        equipoTrabajo: {
+                            select: {
+                                name: true, type_field: true
+                            }
+                        },
+                        idOpcion: true,
+                        opcion: { select: { name: true } }
+                    }
+                },
+                componente_solicitud: {
+                    select: {
+                        description: true,
+                        componenteId: true,
+                        componente: {
+                            select: {
+                                name: true, type_field: true
+                            }
+                        },
+                        idOpcion: true,
+                        opcion: { select: { name: true } }
+                    }
+                },
+                servicio_terreno_solicitud: {
+                    select: {
+                        description: true,
+                        servicioTerrenoId: true,
+                        servicioTerreno: {
+                            select: {
+                                name: true
+                            }
+                        }
+                    }
+                }
             }
         })
+
+        const admins = await prisma.user.findMany({ where: { role: 'admin' } });
+        const emailsTo = [];
+
+        for (let i = 0; i < admins.length; i++) {
+            const admin = admins[i];
+            emailsTo.push(admin.email);
+        }
+
+        const html = EmailNuevaSolicitudTemplate(newSolicitud);
+        const emailData: Models.Email = {
+            from: config.SMTP_FROM || '',
+            to: emailsTo,
+            html: html,
+            subject: 'Mining Service - Nueva solicitud',
+            text: 'Mining Service - Nueva solicitud'
+        }
+
+        await EmailSender(emailData);
 
         return res.status(200).json({ message: "Solicitud creada correctamente", solicitud: newSolicitud });
 
@@ -92,6 +326,44 @@ export const GetSolicitudes = async (req: Request, res: Response) => {
                         }
                     }
                 },
+                equipo_trabajo_solicitud: {
+                    select: {
+                        description: true,
+                        equipoTrabajoId: true,
+                        equipoTrabajo: {
+                            select: {
+                                name: true, type_field: true
+                            }
+                        },
+                        idOpcion: true,
+                        opcion: { select: { name: true } }
+                    }
+                },
+                componente_solicitud: {
+                    select: {
+                        description: true,
+                        componenteId: true,
+                        componente: {
+                            select: {
+                                name: true, type_field: true
+                            }
+                        },
+                        idOpcion: true,
+                        opcion: { select: { name: true } }
+                    }
+                },
+                servicio_terreno_solicitud: {
+                    select: {
+                        description: true,
+                        servicioTerrenoId: true,
+                        servicioTerreno: {
+                            select: {
+                                name: true
+                            }
+                        }
+                    }
+                },
+                motivo_rechazo_solicitud: true
             },
             skip: skip ? Number(skip) : 0,
             take: limit ? Number(limit) : 0,
@@ -140,6 +412,44 @@ export const GetSolicitud = async (req: Request, res: Response) => {
                         }
                     }
                 },
+                equipo_trabajo_solicitud: {
+                    select: {
+                        description: true,
+                        equipoTrabajoId: true,
+                        equipoTrabajo: {
+                            select: {
+                                name: true, type_field: true
+                            }
+                        },
+                        idOpcion: true,
+                        opcion: { select: { name: true } }
+                    }
+                },
+                componente_solicitud: {
+                    select: {
+                        description: true,
+                        componenteId: true,
+                        componente: {
+                            select: {
+                                name: true, type_field: true
+                            }
+                        },
+                        idOpcion: true,
+                        opcion: { select: { name: true } }
+                    }
+                },
+                servicio_terreno_solicitud: {
+                    select: {
+                        description: true,
+                        servicioTerrenoId: true,
+                        servicioTerreno: {
+                            select: {
+                                name: true
+                            }
+                        }
+                    }
+                },
+                motivo_rechazo_solicitud: true
             }
         })
 
@@ -288,6 +598,9 @@ export const CreateComponentesTest = async (req: Request, res: Response) => {
                 {
                     name: 'N° Interno del Cliente',
                 },
+                {
+                    name: 'Horometro',
+                }
             ]
         });
 

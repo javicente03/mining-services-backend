@@ -1,4 +1,7 @@
 import { Request, Response } from "express";
+import config from "../../config";
+import EmailSender from "../../helpers/email/sendEmail";
+import { EmailSolicitudRechazadaTemplate } from "../../helpers/email/templates";
 import prisma from "../../utils/prismaClient";
 
 export const GetSolicitudes = async (req: Request, res: Response) => {
@@ -19,6 +22,43 @@ export const GetSolicitudes = async (req: Request, res: Response) => {
                         }
                     }
                 },
+                equipo_trabajo_solicitud: {
+                    select: {
+                        description: true,
+                        equipoTrabajoId: true,
+                        equipoTrabajo: {
+                            select: {
+                                name: true, type_field: true
+                            }
+                        },
+                        idOpcion: true,
+                        opcion: { select: { name: true } }
+                    }
+                },
+                componente_solicitud: {
+                    select: {
+                        description: true,
+                        componenteId: true,
+                        componente: {
+                            select: {
+                                name: true, type_field: true
+                            }
+                        },
+                        idOpcion: true,
+                        opcion: { select: { name: true } }
+                    }
+                },
+                servicio_terreno_solicitud: {
+                    select: {
+                        description: true,
+                        servicioTerrenoId: true,
+                        servicioTerreno: {
+                            select: {
+                                name: true
+                            }
+                        }
+                    }
+                },
                 user: {
                     select: {
                         name: true,
@@ -27,7 +67,8 @@ export const GetSolicitudes = async (req: Request, res: Response) => {
                         rut: true,
                         id: true
                     }
-                }
+                },
+                motivo_rechazo_solicitud: true
             },
             skip: skip ? Number(skip) : 0,
             take: limit ? Number(limit) : 0,
@@ -66,6 +107,43 @@ export const GetSolicitud = async (req: Request, res: Response) => {
                         }
                     }
                 },
+                equipo_trabajo_solicitud: {
+                    select: {
+                        description: true,
+                        equipoTrabajoId: true,
+                        equipoTrabajo: {
+                            select: {
+                                name: true, type_field: true
+                            }
+                        },
+                        idOpcion: true,
+                        opcion: { select: { name: true } }
+                    }
+                },
+                componente_solicitud: {
+                    select: {
+                        description: true,
+                        componenteId: true,
+                        componente: {
+                            select: {
+                                name: true, type_field: true
+                            }
+                        },
+                        idOpcion: true,
+                        opcion: { select: { name: true } }
+                    }
+                },
+                servicio_terreno_solicitud: {
+                    select: {
+                        description: true,
+                        servicioTerrenoId: true,
+                        servicioTerreno: {
+                            select: {
+                                name: true
+                            }
+                        }
+                    }
+                },
                 user: {
                     select: {
                         name: true,
@@ -74,7 +152,8 @@ export const GetSolicitud = async (req: Request, res: Response) => {
                         rut: true,
                         id: true
                     }
-                }
+                },
+                motivo_rechazo_solicitud: true
             }
         })
 
@@ -89,17 +168,20 @@ export const ResponseSolicitud = async (req: Request, res: Response) => {
     try {
         
         const { id } = req.params;
-        const { response } = req.body;
+        const { response, motivo } = req.body;
 
         if (response !== 'approved' && response !== 'rejected') throw new Error('La respuesta debe ser aprobada o rechazada')
+
+        if (response === 'rejected' && (!motivo || motivo.trim() === '')) throw new Error('Debe ingresar un motivo de rechazo')
 
         const request = await prisma.solicitud.findUnique({
             where: {
                 id: Number(id)
-            }
+            }, include: { user: true }
         })
 
         if (!request) throw new Error('Solicitud no encontrada')
+        if (request.isOT) throw new Error('La solicitud ya fue convertida en OT')
         if (request.status !== 'pending') throw new Error('La solicitud ya fue atendida')
 
         await prisma.solicitud.update({
@@ -107,9 +189,24 @@ export const ResponseSolicitud = async (req: Request, res: Response) => {
                 id: Number(id)
             },
             data: {
-                status: response
+                status: response,
+                // isOT: response === 'approved' ? true : false
             }
         })
+
+        if (response === 'rejected') {
+            await prisma.motivo_Rechazo_Solicitud.create({ data: { description: motivo.trim(), solicitudId: Number(id) } })
+
+            const html = EmailSolicitudRechazadaTemplate(request)
+            const dataEmail: Models.Email = {
+                to: request.user?.email || 'javicentego@gmail.com',
+                subject: 'Mining Service - Solicitud rechazada',
+                html,
+                from: config.SMTP_FROM || '',
+                text: 'Mining Service - Solicitud rechazada'
+            }
+            await EmailSender(dataEmail);
+        }
 
         return res.json({ message: 'Solicitud atendida', status: response })
 

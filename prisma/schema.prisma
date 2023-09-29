@@ -43,8 +43,20 @@ model Tipos_Trabajos_Solicitud {
 model Equipo_Trabajo_Solicitud {
   id        Int      @id @default(autoincrement())
   name    String   @db.VarChar(255)
+  type_field    String   @db.VarChar(255) @default("text")
   deleted   Boolean  @default(false)
   createdAt DateTime @default(now())
+  solicitud_equipo_trabajo Solicitud_Equipo_Trabajo[]
+  opciones_equipo_trabajo_solicitud Opciones_Equipo_Trabajo_Solicitud[]
+}
+
+model Opciones_Equipo_Trabajo_Solicitud {
+  id        Int      @id @default(autoincrement())
+  name    String   @db.VarChar(255)
+  deleted   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  equipo_trabajo_solicitudId    Int?
+  equipo_trabajo_solicitud      Equipo_Trabajo_Solicitud?    @relation(fields: [equipo_trabajo_solicitudId], references: [id])
   solicitud_equipo_trabajo Solicitud_Equipo_Trabajo[]
 }
 
@@ -65,6 +77,7 @@ model Opciones_Componente_Solicitud {
   createdAt DateTime @default(now())
   componente_solicitudId    Int?
   componente_solicitud      Componente_Solicitud?    @relation(fields: [componente_solicitudId], references: [id])
+  solicitud_componente Solicitud_Componente[]
 }
 
 model Servicio_Terreno_Solicitud {
@@ -97,6 +110,15 @@ model Solicitud {
   componente_solicitud Solicitud_Componente[]
   servicio_terreno_solicitud Solicitud_Servicio_Terreno[]
   registro_fotografico_solicitud Registro_Fotografico_Solicitud[]
+  motivo_rechazo_solicitud Motivo_Rechazo_Solicitud[]
+}
+
+model Motivo_Rechazo_Solicitud {
+  id        Int      @id @default(autoincrement())
+  description    String   @db.VarChar(2500)
+  createdAt DateTime @default(now())
+  solicitudId    Int?
+  solicitud      Solicitud?    @relation(fields: [solicitudId], references: [id])
 }
 
 model Solicitud_Tipos_Trabajos {
@@ -116,6 +138,8 @@ model Solicitud_Equipo_Trabajo {
   equipoTrabajoId    Int?
   equipoTrabajo      Equipo_Trabajo_Solicitud?    @relation(fields: [equipoTrabajoId], references: [id])
   description String @db.VarChar(2500)
+  idOpcion    Int?
+  opcion      Opciones_Equipo_Trabajo_Solicitud?    @relation(fields: [idOpcion], references: [id])
   createdAt DateTime @default(now())
 }
 
@@ -126,6 +150,8 @@ model Solicitud_Componente {
   componenteId    Int?
   componente      Componente_Solicitud?    @relation(fields: [componenteId], references: [id])
   description String @db.VarChar(2500)
+  idOpcion    Int?
+  opcion      Opciones_Componente_Solicitud?    @relation(fields: [idOpcion], references: [id])
   createdAt DateTime @default(now())
 }
 
