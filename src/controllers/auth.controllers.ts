@@ -141,3 +141,46 @@ export const ResetPassword = async (req: Request, res: Response) => {
 //         res.status(200).json({refresh: false})
 //     }
 // }
+
+// Test Create
+export const CreateUsersTest = async (req: Request, res: Response) => {
+    try {
+        
+        const salt = await bcrypt.genSalt(10);
+        const hash = await bcrypt.hash('123456', salt);
+
+        await prisma.user.createMany({
+            data: [
+                {
+                    name: 'Admin',
+                    lastname: 'Admin',
+                    rut: '11.111.111-1',
+                    email: 'javicentego@gmail.com',
+                    password: hash,
+                    role: 'admin',
+                },
+                {
+                    name: 'Javier',
+                    lastname: 'Gerardo',
+                    rut: '22.222.222-2',
+                    email: 'javicentego2@gmail.com',
+                    password: hash,
+                    role: 'user'
+                },
+                {
+                    name: 'Danilo',
+                    lastname: 'Lopez',
+                    email: 'dlopez@ejesoft.cl',
+                    rut: '33.333.333-3',
+                    password: hash,
+                    role: 'user'
+                }
+            ]
+        });
+
+        return res.status(200).json({ message: 'Usuarios Creados' })
+
+    } catch (error: any) {
+        return res.status(400).json({error: error.message});
+    }
+}

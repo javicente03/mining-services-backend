@@ -107,12 +107,27 @@ model Solicitud {
   isOT Boolean @default(false)
   status_ot String? @db.VarChar(255)
   type_work String @db.VarChar(255) @default("equipo")
+  presupuestoOtId Int?
+  presupuestoOt Presupuesto_OT? @relation(fields: [presupuestoOtId], references: [id])
   tipos_trabajos_solicitud Solicitud_Tipos_Trabajos[]
   equipo_trabajo_solicitud Solicitud_Equipo_Trabajo[]
   componente_solicitud Solicitud_Componente[]
   servicio_terreno_solicitud Solicitud_Servicio_Terreno[]
   registro_fotografico_solicitud Registro_Fotografico_Solicitud[]
   motivo_rechazo_solicitud Motivo_Rechazo_Solicitud[]
+}
+
+model Presupuesto_OT {
+  id       Int      @id @default(autoincrement())
+  lavado Boolean  @default(false)
+  evaluacion Boolean  @default(false)
+  desarme_evaluacion Boolean  @default(false)
+  informe_tecnico String @db.VarChar(2500) @default("")
+  tipo_componente String @db.VarChar(255) @default("")
+  cost Int @default(0)
+  date DateTime?
+  motivo_rechazo String @db.VarChar(2500) @default("")
+  ots Solicitud[]
 }
 
 model Motivo_Rechazo_Solicitud {
