@@ -1,7 +1,7 @@
 {
   "AWSEBDockerrunVersion": "1",
   "Image": {
-    "Name": "335750128254.dkr.ecr.us-east-1.amazonaws.com/msportal:latest",
+    "Name": "028689598179.dkr.ecr.us-east-1.amazonaws.com/mstemp:latest",
     "Update": "true"
   },
   "Ports": [
