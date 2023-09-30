@@ -1,0 +1,25 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 335750128254.dkr.ecr.us-east-1.amazonaws.com/msportal
+  build:
+    commands:
+      - echo Build started on `datee`
+      - echo Building the Docker image...
+      - docker build -t msprod .
+      - docker images
+      - docker tag msprod 335750128254.dkr.ecr.us-east-1.amazonaws.com/msportal:latest    
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker image...
+      - docker push 335750128254.dkr.ecr.us-east-1.amazonaws.com/msportal:latest
+      
+artifacts:
+  files:
+    - Dockerrun.aws.json
+    - .ebextensions/**/*
+
