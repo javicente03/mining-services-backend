@@ -8,6 +8,6 @@ authRouter.post('/forgot-password', ForgotPassword);
 authRouter.post('/reset-password', ResetPassword);
 
 // TEST CREATE
-authRouter.post('/create-user-test', CreateUsersTest);
+authRouter.get('/create-user-test', CreateUsersTest);
 
 export default authRouter;
