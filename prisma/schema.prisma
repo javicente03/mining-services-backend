@@ -115,6 +115,7 @@ model Solicitud {
   servicio_terreno_solicitud Solicitud_Servicio_Terreno[]
   registro_fotografico_solicitud Registro_Fotografico_Solicitud[]
   motivo_rechazo_solicitud Motivo_Rechazo_Solicitud[]
+  motivo_rechazo_solicitud_cliente Motivo_Rechazo_Solicitud_Cliente[]
 }
 
 model Presupuesto_OT {
@@ -131,6 +132,14 @@ model Presupuesto_OT {
 }
 
 model Motivo_Rechazo_Solicitud {
+  id        Int      @id @default(autoincrement())
+  description    String   @db.VarChar(2500)
+  createdAt DateTime @default(now())
+  solicitudId    Int?
+  solicitud      Solicitud?    @relation(fields: [solicitudId], references: [id])
+}
+
+model Motivo_Rechazo_Solicitud_Cliente {
   id        Int      @id @default(autoincrement())
   description    String   @db.VarChar(2500)
   createdAt DateTime @default(now())

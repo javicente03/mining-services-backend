@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import config from "../config";
 import EmailSender from "../helpers/email/sendEmail";
-import { EmailNuevaSolicitudTemplate } from "../helpers/email/templates";
+import { EmailNuevaSolicitudTemplate, EmailSolicitudAprobadaClientePresupuestoTemplate, EmailSolicitudRechazadaClientePresupuestoTemplate } from "../helpers/email/templates";
 import ObtainUser from "../utils/obtainUser";
 import prisma from "../utils/prismaClient";
 
@@ -363,7 +363,9 @@ export const GetSolicitudes = async (req: Request, res: Response) => {
                         }
                     }
                 },
-                motivo_rechazo_solicitud: true
+                motivo_rechazo_solicitud: true,
+                presupuestoOt: true,
+                motivo_rechazo_solicitud_cliente: true
             },
             skip: skip ? Number(skip) : 0,
             take: limit ? Number(limit) : 0,
@@ -449,7 +451,9 @@ export const GetSolicitud = async (req: Request, res: Response) => {
                         }
                     }
                 },
-                motivo_rechazo_solicitud: true
+                motivo_rechazo_solicitud: true,
+                presupuestoOt: true,
+                motivo_rechazo_solicitud_cliente: true
             }
         })
 
@@ -503,6 +507,76 @@ export const GetFormServiciosTerreno = async (req: Request, res: Response) => {
         const servicios = await prisma.servicio_Terreno_Solicitud.findMany({ where: { deleted: false } });
 
         return res.status(200).json({ data: servicios });
+    } catch (error: any) {
+        return res.status(400).json({ error: error.message });
+    }
+}
+
+export const AceptOrRejectBudget = async (req: Request, res: Response) => {
+    try {
+        const idUser = await ObtainUser(req);
+        const user = await prisma.user.findUnique({ where: { id: idUser.id } })
+        const { id } = req.params;
+        const { status, motivo_rechazo } = req.body;
+
+        if (!user) throw new Error("Usuario no encontrado");
+
+        const solicitud = await prisma.solicitud.findFirst({ where: { id: Number(id) }, include: { user: true } });
+        if (!solicitud) throw new Error("Solicitud no encontrada");
+        if (solicitud.userId !== user.id) throw new Error("No tienes permisos para realizar esta acción");
+        if (solicitud.status_ot !== 'approved') throw new Error("La solicitud no tiene un presupuesto aprobado");
+
+        if (status !== 'approved' && status !== 'rejected') throw new Error("Debe enviar un estado válido");
+
+        if (status === 'rejected' && (!motivo_rechazo || motivo_rechazo.trim() === "")) throw new Error("Debe enviar un motivo de rechazo");
+
+        await prisma.solicitud.update({ where: { id: solicitud.id }, data: { status_ot: status === 'approved' ? 'in_process' : 'rejected',
+            isOT: status === 'approved' ? true : false
+        } });
+
+        if (status === 'rejected') {
+            await prisma.motivo_Rechazo_Solicitud_Cliente.create({
+                data: {
+                    description: motivo_rechazo,
+                    solicitudId: solicitud.id
+                }
+            });
+
+            await prisma.solicitud.update({ where: { id: solicitud.id }, data: { status: 'rejected' } });
+        }
+
+        const emailsAdmin = await prisma.user.findMany({ where: { role: 'admin' } });
+        const emailsTo = [];
+        for (let i = 0; i < emailsAdmin.length; i++) {
+            const admin = emailsAdmin[i];
+            emailsTo.push(admin.email);
+        }
+        if (status === 'approved') {
+            const html = EmailSolicitudAprobadaClientePresupuestoTemplate(solicitud);
+            const emailData: Models.Email = {
+                from: config.SMTP_FROM || '',
+                to: emailsTo,
+                html: html,
+                subject: 'Mining Service - Presupuesto aceptado',
+                text: 'Mining Service - Presupuesto aceptado'
+            }
+    
+            await EmailSender(emailData);
+        } else {
+            const html = EmailSolicitudRechazadaClientePresupuestoTemplate(solicitud);
+            const emailData: Models.Email = {
+                from: config.SMTP_FROM || '',
+                to: emailsTo,
+                html: html,
+                subject: 'Mining Service - Solicitud rechazada',
+                text: 'Mining Service - Solicitud rechazada'
+            }
+    
+            await EmailSender(emailData);
+        }
+
+        return res.status(200).json({ message: "Solicitud actualizada correctamente", status: status });
+
     } catch (error: any) {
         return res.status(400).json({ error: error.message });
     }

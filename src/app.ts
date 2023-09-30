@@ -6,6 +6,7 @@ import authAdminRouter from './routes/admin/auth.routes';
 import solicitudesRouter from './routes/solicitudes.routes';
 import solicitudesRouterAdmin from './routes/admin/solicitudes.routes';
 import otsRouterAdmin from './routes/admin/ots.routes';
+import otsRouter from './routes/ots.routes';
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.get('/raiz', (req, res) => {
 // Routes Users
 app.use('/api/auth', authRouter);
 app.use('/api/requests', solicitudesRouter);
+app.use('/api/ots', otsRouter);
 
 // Routes Admin
 app.use('/api/admin/auth', authAdminRouter);

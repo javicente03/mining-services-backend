@@ -69,7 +69,9 @@ export const GetOTs = async (req: Request, res: Response) => {
                         id: true
                     }
                 },
-                motivo_rechazo_solicitud: true
+                motivo_rechazo_solicitud: true,
+                presupuestoOt: true,
+                motivo_rechazo_solicitud_cliente: true
             },
             skip: skip ? Number(skip) : 0,
             take: limit ? Number(limit) : undefined,
@@ -152,7 +154,8 @@ export const GetOT = async (req: Request, res: Response) => {
                     }
                 },
                 motivo_rechazo_solicitud: true,
-                presupuestoOt: true
+                presupuestoOt: true,
+                motivo_rechazo_solicitud_cliente: true
             }
         })
 

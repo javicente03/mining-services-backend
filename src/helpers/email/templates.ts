@@ -76,3 +76,41 @@ export const EmailSolicitudAprobadaPresupuestoTemplate = (solicitud: any) => {
     `;
     return html;
 }
+
+export const EmailSolicitudRechazadaClientePresupuestoTemplate = (solicitud: any) => {
+    const html = `
+        <div style="background-color: #2b2d3a; padding: 20px;">
+            <div style="background-color: #272936; padding: 20px; border-radius: 10px;">
+                <div style="text-align: center;">
+                    <img src="" alt="Logo" style="width: 200px;">
+                </div>
+                <div style="text-align: center;">
+                    <h2 style="font-size: 24px; font-weight: 600; color: #b4d939;">Solicitud rechazada</h2>
+                    <p style="font-size: 16px; font-weight: 400; color: #fff;">La solicitud N°${solicitud.id} de ${solicitud.user?.name} ha sido rechazada por el cliente.</p>
+                    <p style="font-size: 16px; font-weight: 400; color: #fff;">Por favor haz click en el siguiente botón para ver el detalle.</p>
+                    <a href="${config.DOMAIN_FRONTEND}/admin/ots/budget/${solicitud.id}" style="text-decoration: none; background-color: #b0db43; color: #2b2d3a; padding: 10px 20px; border-radius: 5px; font-size: 20px; font-weight: 600;">Ver solicitud</a>
+                </div>
+            </div>
+        </div>
+    `;
+    return html;
+}
+
+export const EmailSolicitudAprobadaClientePresupuestoTemplate = (solicitud: any) => {
+    const html = `
+        <div style="background-color: #2b2d3a; padding: 20px;">
+            <div style="background-color: #272936; padding: 20px; border-radius: 10px;">
+                <div style="text-align: center;">
+                    <img src="" alt="Logo" style="width: 200px;">
+                </div>
+                <div style="text-align: center;">
+                    <h2 style="font-size: 24px; font-weight: 600; color: #b4d939;">Presupuesto Aceptado</h2>
+                    <p style="font-size: 16px; font-weight: 400; color: #fff;">El presupuesto de la solicitud N°${solicitud.id} de ${solicitud.user?.name} ha sido aceptado por el cliente.</p>
+                    <p style="font-size: 16px; font-weight: 400; color: #fff;">Por favor haz click en el siguiente botón para ver el detalle.</p>
+                    <a href="${config.DOMAIN_FRONTEND}/admin/ots/budget/${solicitud.id}" style="text-decoration: none; background-color: #b0db43; color: #2b2d3a; padding: 10px 20px; border-radius: 5px; font-size: 20px; font-weight: 600;">Ver solicitud</a>
+                </div>
+            </div>
+        </div>
+    `;
+    return html;
+}
