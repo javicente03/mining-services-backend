@@ -6,6 +6,7 @@ import config from "../config";
 import { v4 as uuidv4 } from "uuid";
 import { EmailForgotPasswordTemplate } from "../helpers/email/templates";
 import EmailSender from "../helpers/email/sendEmail";
+import s3Aws from "../utils/aws";
 
 export const Login = async (req: Request, res: Response) => {
     try {
@@ -179,6 +180,45 @@ export const CreateUsersTest = async (req: Request, res: Response) => {
         });
 
         return res.status(200).json({ message: 'Usuarios Creados' })
+
+    } catch (error: any) {
+        return res.status(400).json({error: error.message});
+    }
+}
+
+// Test Create Image
+export const CreateImageTest = async (req: Request, res: Response) => {
+    try {
+        const { img } = req.body;
+        if (!img) throw new Error('Faltan datos requeridos');
+
+        // Esta llegando el base64 puro
+        const base64Data = Buffer.alloc(img.length, img, 'base64');
+        const name = uuidv4();
+
+        const data = await s3Aws.upload({
+            // Bucket hace referencia al nombre del bucket que creamos en AWS
+            Bucket: config.BUCKET_NAME_AWS || '',
+            // Key hace referencia al nombre del archivo que vamos a guardar en el bucket
+            Key: `images/ot/1/${name}.png`,
+            Body: base64Data
+        }).promise();
+
+        return res.status(200).json({ message: 'Imagen subida', url: data.Location });
+
+    } catch (error: any) {
+        return res.status(400).json({error: error.message});
+    }
+}
+
+export const LeerImagenesEnBucket = async (req: Request, res: Response) => {
+    try {
+        const data = await s3Aws.listObjects({
+            Bucket: config.BUCKET_NAME_AWS || '',
+            Prefix: 'images/ot/1/'
+        }).promise();
+
+        return res.status(200).json({ data });
 
     } catch (error: any) {
         return res.status(400).json({error: error.message});

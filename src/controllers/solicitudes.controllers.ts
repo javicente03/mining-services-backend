@@ -4,6 +4,7 @@ import EmailSender from "../helpers/email/sendEmail";
 import { EmailNuevaSolicitudTemplate, EmailSolicitudAprobadaClientePresupuestoTemplate, EmailSolicitudRechazadaClientePresupuestoTemplate } from "../helpers/email/templates";
 import ObtainUser from "../utils/obtainUser";
 import prisma from "../utils/prismaClient";
+import { UploadArchiveToS3 } from "../utils/UploadArchiveToS3";
 
 // export const CreateSolicitudRespaldo = async (req: Request, res: Response) => {
 //     try {
@@ -74,7 +75,7 @@ import prisma from "../utils/prismaClient";
 export const CreateSolicitud = async (req: Request, res: Response) => {
     try {
         const {
-            works, description, form_equipos, form_components, form_terreno, type_work
+            works, description, form_equipos, form_components, form_terreno, type_work, img, img_format
         } = req.body;
         const idUser = await ObtainUser(req);
         const user = await prisma.user.findUnique({ where: { id: idUser.id } });
@@ -87,6 +88,9 @@ export const CreateSolicitud = async (req: Request, res: Response) => {
 
         // Tipo de trabajo: Equipo ----------------------------------------------
         if (type_work === 'equipo') {
+            if (!img) throw new Error("Debe enviar una imagen");
+            if (!img_format) throw new Error("Debe enviar el formato de la imagen");
+
             if (!form_equipos) throw new Error("Data inválida");
             if (!Array.isArray(form_equipos)) throw new Error("Data inválida");
             const fields = await prisma.equipo_Trabajo_Solicitud.findMany({ where: { deleted: false }, include: { opciones_equipo_trabajo_solicitud: { where: { deleted: false } } } });
@@ -111,6 +115,9 @@ export const CreateSolicitud = async (req: Request, res: Response) => {
 
         // Tipo de trabajo: Componente ----------------------------------------------
         if (type_work === 'componente') {
+            if (!img) throw new Error("Debe enviar una imagen");
+            if (!img_format) throw new Error("Debe enviar el formato de la imagen");
+
             if (!form_components) throw new Error("Data inválida");
             if (!Array.isArray(form_components)) throw new Error("Data inválida");
             const fields = await prisma.componente_Solicitud.findMany({ where: { deleted: false }, include: { opciones_componente_solicitud: { where: { deleted: false } } } });
@@ -154,6 +161,16 @@ export const CreateSolicitud = async (req: Request, res: Response) => {
                     }
                 });
             }
+
+            const upload = await UploadArchiveToS3(img, 'images/ot/' + solicitud.id, img_format);
+            if (upload) {
+                await prisma.registro_Fotografico_Solicitud.create({ 
+                    data: {
+                        solicitudId: solicitud.id,
+                        url: upload.path
+                    }
+                });
+            }
         }
 
         // Tipo de trabajo: Componente ----------------------------------------------
@@ -166,6 +183,16 @@ export const CreateSolicitud = async (req: Request, res: Response) => {
                         solicitudId: solicitud.id,
                         componenteId: field.id,
                         idOpcion: field.type_field === 'select' ? field.opcion_componente_solicitud_id : null
+                    }
+                });
+            }
+
+            const upload = await UploadArchiveToS3(img, 'images/ot/' + solicitud.id, img_format);
+            if (upload) {
+                await prisma.registro_Fotografico_Solicitud.create({ 
+                    data: {
+                        solicitudId: solicitud.id,
+                        url: upload.path
                     }
                 });
             }
@@ -365,7 +392,8 @@ export const GetSolicitudes = async (req: Request, res: Response) => {
                 },
                 motivo_rechazo_solicitud: true,
                 presupuestoOt: true,
-                motivo_rechazo_solicitud_cliente: true
+                motivo_rechazo_solicitud_cliente: true,
+                registro_fotografico_solicitud: true
             },
             skip: skip ? Number(skip) : 0,
             take: limit ? Number(limit) : 0,
@@ -373,6 +401,16 @@ export const GetSolicitudes = async (req: Request, res: Response) => {
                 id: 'desc'
             }
         })
+
+        for (let i = 0; i < requests.length; i++) {
+            const request = requests[i];
+            if (request.registro_fotografico_solicitud) {
+                for (let j = 0; j < request.registro_fotografico_solicitud.length; j++) {
+                    const img = request.registro_fotografico_solicitud[j];
+                    img.url = `${config.DOMAIN_BUCKET_AWS}${img.url}`
+                }
+            }
+        }
 
         const total = await prisma.solicitud.count({
             where: {
@@ -453,11 +491,19 @@ export const GetSolicitud = async (req: Request, res: Response) => {
                 },
                 motivo_rechazo_solicitud: true,
                 presupuestoOt: true,
-                motivo_rechazo_solicitud_cliente: true
+                motivo_rechazo_solicitud_cliente: true,
+                registro_fotografico_solicitud: true
             }
         })
 
         if (!request) throw new Error("Solicitud no encontrada");
+
+        if (request.registro_fotografico_solicitud) {
+            for (let j = 0; j < request.registro_fotografico_solicitud.length; j++) {
+                const img = request.registro_fotografico_solicitud[j];
+                img.url = `${config.DOMAIN_BUCKET_AWS}${img.url}`
+            }
+        }
 
         return res.json({
             data: request

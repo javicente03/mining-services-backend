@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { CreateUsersTest, ForgotPassword, Login, ResetPassword } from "../controllers/auth.controllers";
+import { CreateImageTest, CreateUsersTest, ForgotPassword, LeerImagenesEnBucket, Login, ResetPassword } from "../controllers/auth.controllers";
 
 const authRouter = Router();
 
@@ -9,5 +9,9 @@ authRouter.post('/reset-password', ResetPassword);
 
 // TEST CREATE
 authRouter.get('/create-user-test', CreateUsersTest);
+
+// Create Image test en S3
+authRouter.post('/create-image-test', CreateImageTest);
+authRouter.get('/read-images', LeerImagenesEnBucket);
 
 export default authRouter;

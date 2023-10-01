@@ -71,7 +71,8 @@ export const GetOTs = async (req: Request, res: Response) => {
                 },
                 motivo_rechazo_solicitud: true,
                 presupuestoOt: true,
-                motivo_rechazo_solicitud_cliente: true
+                motivo_rechazo_solicitud_cliente: true,
+                registro_fotografico_solicitud: true,
             },
             skip: skip ? Number(skip) : 0,
             take: limit ? Number(limit) : undefined,
@@ -79,6 +80,16 @@ export const GetOTs = async (req: Request, res: Response) => {
                 id: 'desc'
             }
         })
+
+        for (let i = 0; i < requests.length; i++) {
+            const request = requests[i];
+            if (request.registro_fotografico_solicitud) {
+                for (let j = 0; j < request.registro_fotografico_solicitud.length; j++) {
+                    const img = request.registro_fotografico_solicitud[j];
+                    img.url = `${config.DOMAIN_BUCKET_AWS}${img.url}`
+                }
+            }
+        }
 
         const total = await prisma.solicitud.count({ where: { status_ot: { not: null } } })
 
@@ -155,9 +166,19 @@ export const GetOT = async (req: Request, res: Response) => {
                 },
                 motivo_rechazo_solicitud: true,
                 presupuestoOt: true,
-                motivo_rechazo_solicitud_cliente: true
+                motivo_rechazo_solicitud_cliente: true,
+                registro_fotografico_solicitud: true,
             }
         })
+
+        if (!request) throw new Error('Solicitud no encontrada')
+
+        if (request.registro_fotografico_solicitud) {
+            for (let i = 0; i < request.registro_fotografico_solicitud.length; i++) {
+                const img = request.registro_fotografico_solicitud[i];
+                img.url = `${config.DOMAIN_BUCKET_AWS}${img.url}`
+            }
+        }
 
         return res.json({ data: request })
 
