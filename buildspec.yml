@@ -4,19 +4,19 @@ phases:
   pre_build:
     commands:
       - echo Logging in to Amazon ECR...
-      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 335750128254.dkr.ecr.us-east-1.amazonaws.com/msportal
+      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 028689598179.dkr.ecr.us-east-1.amazonaws.com/mstemp
   build:
     commands:
       - echo Build started on `datee`
       - echo Building the Docker image...
       - docker build -t msprod .
       - docker images
-      - docker tag msprod 335750128254.dkr.ecr.us-east-1.amazonaws.com/msportal:latest    
+      - docker tag msprod 028689598179.dkr.ecr.us-east-1.amazonaws.com/mstemp:latest    
   post_build:
     commands:
       - echo Build completed on `date`
       - echo Pushing the Docker image...
-      - docker push 335750128254.dkr.ecr.us-east-1.amazonaws.com/msportal:latest
+      - docker push 028689598179.dkr.ecr.us-east-1.amazonaws.com/mstemp:latest
       
 artifacts:
   files:
