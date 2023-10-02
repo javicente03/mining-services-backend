@@ -27,6 +27,8 @@ model User {
   name      String   @db.VarChar(255)
   lastname  String   @db.VarChar(255)
   password  String   @db.VarChar(255)
+  cargo    String   @db.VarChar(255) @default("")
+  phone     String   @db.VarChar(255) @default("")
   role      String   @default("user") @db.VarChar(255)
   thumbnail String?  @db.VarChar(255)
   active    Boolean  @default(true)
