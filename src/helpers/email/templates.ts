@@ -114,3 +114,43 @@ export const EmailSolicitudAprobadaClientePresupuestoTemplate = (solicitud: any)
     `;
     return html;
 }
+
+export const EmailNuevaOTGeneradaAdminTemplate = (ot: any) => {
+    const html = `
+        <div style="background-color: #2b2d3a; padding: 20px;">
+            <div style="background-color: #272936; padding: 20px; border-radius: 10px;">
+                <div style="text-align: center;">
+                    <img src="http://sitiotempms.s3-website-us-east-1.amazonaws.com/assets/logo_sidebar-afd09d73.png" alt="Logo" style="width: 200px;">
+                </div>
+                <div style="text-align: center;">
+                    <h2 style="font-size: 24px; font-weight: 600; color: #b4d939;">Nueva OT</h2>
+                    <p style="font-size: 16px; font-weight: 400; color: #fff;">Hola ${ot.user?.name}, hemos generado una nueva OT #${ot.id} asociada a ti.</p>
+                    <p style="font-size: 16px; font-weight: 400; color: #fff;">Por favor haz click en el siguiente botón para ver el detalle.</p>
+                    <a href="${config.DOMAIN_FRONTEND}/requests/${ot.id}" style="text-decoration: none; background-color: #b0db43; color: #2b2d3a; padding: 10px 20px; border-radius: 5px; font-size: 20px; font-weight: 600;">Ver OT</a>
+                </div>
+            </div>
+        </div>
+    `;
+    return html;
+}
+
+
+// Para las OTS creadas por el admin - envia al usuario el presupuesto asignado
+export const EmailOTAprobadaPresupuestoTemplate = (solicitud: any) => {
+    const html = `
+        <div style="background-color: #2b2d3a; padding: 20px;">
+            <div style="background-color: #272936; padding: 20px; border-radius: 10px;">
+                <div style="text-align: center;">
+                    <img src="http://sitiotempms.s3-website-us-east-1.amazonaws.com/assets/logo_sidebar-afd09d73.png" alt="Logo" style="width: 200px;">
+                </div>
+                <div style="text-align: center;">
+                    <h2 style="font-size: 24px; font-weight: 600; color: #b4d939;">Presupuesto Asignado</h2>
+                    <p style="font-size: 16px; font-weight: 400; color: #fff;">Hola ${solicitud.user?.name}, le hemos asignado un presupuesto la ot N°${solicitud.id}.</p>
+                    <p style="font-size: 16px; font-weight: 400; color: #fff;">Por favor haz click en el siguiente botón para ver el detalle del presupuesto.</p>
+                    <a href="${config.DOMAIN_FRONTEND}/requests/${solicitud.id}" style="text-decoration: none; background-color: #b0db43; color: #2b2d3a; padding: 10px 20px; border-radius: 5px; font-size: 20px; font-weight: 600;">Ver OT</a>
+                </div>
+            </div>
+        </div>
+    `;
+    return html;
+}

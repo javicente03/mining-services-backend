@@ -10,6 +10,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Company {
+  id        Int      @id @default(autoincrement())
+  rut       String   @db.VarChar(255)
+  razon_social      String   @db.VarChar(255)
+  direccion String   @db.VarChar(255)
+  telefono  String   @db.VarChar(255)
+  logo      String?  @db.VarChar(255)
+  users User[]
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   rut       String   @db.VarChar(255)
@@ -22,8 +32,11 @@ model User {
   active    Boolean  @default(true)
   deleted   Boolean  @default(false)
   createdAt DateTime @default(now())
+  companyId Int?
+  company   Company?  @relation(fields: [companyId], references: [id])
   recover_password Recover_Password[]
-  solicitudes Solicitud[]
+  solicitudes Solicitud[] @relation("user_solicitud")
+  solicitudes_created_admin Solicitud[] @relation("admin_created_solicitud")
 }
 
 model Recover_Password {
@@ -79,6 +92,7 @@ model Opciones_Componente_Solicitud {
   componente_solicitudId    Int?
   componente_solicitud      Componente_Solicitud?    @relation(fields: [componente_solicitudId], references: [id])
   solicitud_componente Solicitud_Componente[]
+  presupuesto_ot Presupuesto_OT[]
 }
 
 model Servicio_Terreno_Solicitud {
@@ -100,14 +114,19 @@ model Registro_Fotografico_Solicitud {
 model Solicitud {
   id        Int      @id @default(autoincrement())
   userId    Int?
-  user      User?    @relation(fields: [userId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id], name: "user_solicitud")
   status    String   @default("pending") @db.VarChar(255)
   description String @db.VarChar(2500)
   createdAt DateTime @default(now())
   isOT Boolean @default(false)
   status_ot String? @db.VarChar(255)
   type_work String @db.VarChar(255) @default("equipo")
+  fecha_ingreso DateTime?
+  numero_gd String? @db.VarChar(255)
   presupuestoOtId Int?
+  createdById Int?
+  createdBy User? @relation(fields: [createdById], references: [id], name: "admin_created_solicitud")
+  createdByAdmin Boolean @default(false)
   presupuestoOt Presupuesto_OT? @relation(fields: [presupuestoOtId], references: [id])
   tipos_trabajos_solicitud Solicitud_Tipos_Trabajos[]
   equipo_trabajo_solicitud Solicitud_Equipo_Trabajo[]
@@ -124,7 +143,8 @@ model Presupuesto_OT {
   evaluacion Boolean  @default(false)
   desarme_evaluacion Boolean  @default(false)
   informe_tecnico String @db.VarChar(2500) @default("")
-  tipo_componente String @db.VarChar(255) @default("")
+  tipo_componenteId Int?
+  tipo_componente Opciones_Componente_Solicitud? @relation(fields: [tipo_componenteId], references: [id])
   cost Int @default(0)
   date DateTime?
   motivo_rechazo String @db.VarChar(2500) @default("")

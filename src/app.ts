@@ -7,6 +7,9 @@ import solicitudesRouter from './routes/solicitudes.routes';
 import solicitudesRouterAdmin from './routes/admin/solicitudes.routes';
 import otsRouterAdmin from './routes/admin/ots.routes';
 import otsRouter from './routes/ots.routes';
+import usersAdminRouter from './routes/admin/users.routes';
+import companiesAdminRouter from './routes/admin/companies.routes';
+import formsAdminRouter from './routes/admin/forms.routes';
 
 const app = express();
 
@@ -37,5 +40,8 @@ app.use('/api/ots', otsRouter);
 app.use('/api/admin/auth', authAdminRouter);
 app.use('/api/admin/requests', solicitudesRouterAdmin);
 app.use('/api/admin/ots', otsRouterAdmin);
+app.use('/api/admin/users', usersAdminRouter);
+app.use('/api/admin/companies', companiesAdminRouter);
+app.use('/api/admin/forms', formsAdminRouter);
 
 export default app;
