@@ -17,6 +17,7 @@ model Company {
   direccion String   @db.VarChar(255)
   telefono  String   @db.VarChar(255)
   logo      String?  @db.VarChar(255)
+  createdAt DateTime @default(now())
   users User[]
 }
 

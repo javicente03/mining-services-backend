@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../../utils/prismaClient';
 import bcrypt from 'bcrypt';
 import { UploadArchiveToS3 } from '../../utils/UploadArchiveToS3';
+import config from '../../config';
 
 export const getUsersUser = async (req: Request, res: Response) => {
     try {
@@ -50,7 +51,7 @@ export const getUsers = async (req: Request, res: Response) => {
             take: Number(limit) || undefined,
             where: {
                 ...(role && { role: String(role) }),
-                ...(companyId && { companyId: Number(companyId) }),
+                ...(companyId && Number(companyId) !== 0 && { companyId: Number(companyId) }),
                 ...(search && {
                     OR: [
                         {name: {contains: String(search)}},
@@ -63,15 +64,24 @@ export const getUsers = async (req: Request, res: Response) => {
             }
         });
 
-        const total = await prisma.user.count({ where: { 
-            ...(role && { role: String(role) }),
-            ...(companyId && { companyId: Number(companyId) }), ...(search && {
-                OR: [
-                    {name: {contains: String(search)}},
-                    {lastname: {contains: String(search)}},
-                ]
-            })
-        } });
+        const total = await prisma.user.count({ 
+            where: {
+                ...(role && { role: String(role) }),
+                ...(companyId && Number(companyId) !== 0 && { companyId: Number(companyId) }),
+                ...(search && {
+                    OR: [
+                        {name: {contains: String(search)}},
+                        {lastname: {contains: String(search)}},
+                    ]
+                }),
+            }
+        });
+
+        for (let index = 0; index < users.length; index++) {
+            const element = users[index];
+            
+            element.thumbnail = element.thumbnail ? `${config.DOMAIN_BUCKET_AWS}${element.thumbnail}` : null;
+        }
 
         return res.status(200).json({ data: users, total });
 
@@ -108,6 +118,9 @@ export const createUser = async (req: Request, res: Response) => {
 
         await prisma.user.findFirst({ where: { email } }).then((user) => { if (user) throw new Error('El email ya está en uso') });
         await prisma.user.findFirst({ where: { rut } }).then((user) => { if (user) throw new Error('El rut ya está en uso') });
+
+        // password min 6 caracteres
+        if (password.length < 6) throw new Error('La contraseña debe tener al menos 6 caracteres');
 
         if (role === 'user') {
             if (!companyId) throw new Error('No se ha seleccionado una empresa');
@@ -172,7 +185,7 @@ export const createUser = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { name, lastname, email, password, companyId, cargo, rut, phone, thumbnail, thumbnail_format, active } = req.body;
+        const { name, lastname, email, password, cargo, rut, phone, thumbnail, thumbnail_format, active } = req.body;
 
         if (!name || !lastname || !email || !rut || !phone) throw new Error('Faltan campos por completar');
 
@@ -182,10 +195,9 @@ export const updateUser = async (req: Request, res: Response) => {
         await prisma.user.findFirst({ where: { email, id: { not: Number(id) } } }).then((user) => { if (user) throw new Error('El email ya está en uso') });
         await prisma.user.findFirst({ where: { rut, id: { not: Number(id) } } }).then((user) => { if (user) throw new Error('El rut ya está en uso') });
 
+        if (password && password.length < 6) throw new Error('La contraseña debe tener al menos 6 caracteres');
+
         if (user.role === 'user') {
-            if (!companyId) throw new Error('No se ha seleccionado una empresa');
-            const company = await prisma.company.findUnique({ where: { id: Number(companyId) } });
-            if (!company) throw new Error('La empresa no existe');
             if (!cargo) throw new Error('Falta el cargo');
 
             await prisma.user.update({
@@ -194,7 +206,6 @@ export const updateUser = async (req: Request, res: Response) => {
                     name,
                     lastname,
                     email,
-                    companyId: Number(companyId),
                     cargo,
                     rut,
                     phone,

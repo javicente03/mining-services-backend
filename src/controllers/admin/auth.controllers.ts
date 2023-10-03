@@ -23,6 +23,8 @@ export const LoginWeb = async (req: Request, res: Response) => {
         const isPasswordValid = await bcrypt.compare(password, user.password);
 
         if (!isPasswordValid) throw new Error("La contraseña no es válida");
+
+        if (!user.active) throw new Error("Usuario inactivo");
         
         const token = jwt.sign({
             id: user.id,
@@ -31,6 +33,8 @@ export const LoginWeb = async (req: Request, res: Response) => {
             rut: user.rut,
             type_user: user.role,
         }, config.SECRET_KEY_JWT || 'secret_key', {expiresIn: '30d'});
+
+        user.thumbnail = user.thumbnail ? `${config.DOMAIN_BUCKET_AWS}${user.thumbnail}` : null;
 
         return res.status(200).json({ token, user });
 

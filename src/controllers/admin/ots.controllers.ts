@@ -68,7 +68,8 @@ export const GetOTs = async (req: Request, res: Response) => {
                         lastname: true,
                         email: true,
                         rut: true,
-                        id: true
+                        id: true,
+                        thumbnail: true
                     }
                 },
                 motivo_rechazo_solicitud: true,
@@ -90,6 +91,10 @@ export const GetOTs = async (req: Request, res: Response) => {
                     const img = request.registro_fotografico_solicitud[j];
                     img.url = `${config.DOMAIN_BUCKET_AWS}${img.url}`
                 }
+            }
+
+            if (request.user) {
+                request.user.thumbnail = request.user.thumbnail ? `${config.DOMAIN_BUCKET_AWS}${request.user.thumbnail}` : null;
             }
         }
 

@@ -68,6 +68,16 @@ export const GetMyOts = async (req: Request, res: Response) => {
                 motivo_rechazo_solicitud: true,
                 presupuestoOt: true,
                 registro_fotografico_solicitud: true,
+                user: {
+                    select: {
+                        name: true,
+                        lastname: true,
+                        rut: true,
+                        email: true,
+                        phone: true,
+                        thumbnail: true,
+                    }
+                }
             },
             skip: skip ? Number(skip) : 0,
             take: limit ? Number(limit) : undefined,
@@ -83,6 +93,10 @@ export const GetMyOts = async (req: Request, res: Response) => {
                     const img = request.registro_fotografico_solicitud[j];
                     img.url = `${config.DOMAIN_BUCKET_AWS}${img.url}`
                 }
+            }
+
+            if (request.user) {
+                request.user.thumbnail = request.user.thumbnail ? `${config.DOMAIN_BUCKET_AWS}${request.user.thumbnail}` : null;
             }
         } 
 
