@@ -138,6 +138,7 @@ model Solicitud {
   registro_fotografico_solicitud Registro_Fotografico_Solicitud[]
   motivo_rechazo_solicitud Motivo_Rechazo_Solicitud[]
   motivo_rechazo_solicitud_cliente Motivo_Rechazo_Solicitud_Cliente[]
+  ot_actividades_relation OT_Actividades_Relation[]
 }
 
 model Presupuesto_OT {
@@ -213,3 +214,40 @@ model Solicitud_Servicio_Terreno {
   description String @db.VarChar(2500)
   createdAt DateTime @default(now())
 }
+
+// Actividades OT ---------------------------------------------------------------
+model Actividades_OT {
+  id        Int      @id @default(autoincrement())
+  name    String   @db.VarChar(255)
+  description String @db.VarChar(2500)
+  deleted   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  subActividades SubActividades_OT[]
+  ot_actividades_relation OT_Actividades_Relation[]
+}
+
+model SubActividades_OT {
+  id        Int      @id @default(autoincrement())
+  name    String   @db.VarChar(255)
+  description String @db.VarChar(2500)
+  horas_hombre Int @default(0)
+  tiempo_real String @db.VarChar(255) @default("00:00")
+  varianza_hh Int @default(0)
+  deleted   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  actividadId    Int?
+  actividad      Actividades_OT?    @relation(fields: [actividadId], references: [id])
+}
+
+model OT_Actividades_Relation {
+  id        Int      @id @default(autoincrement())
+  otId    Int?
+  ot      Solicitud?    @relation(fields: [otId], references: [id])
+  actividadId    Int?
+  actividad      Actividades_OT?    @relation(fields: [actividadId], references: [id])
+  finished Boolean @default(false)
+  deleted   Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// Fin Actividades OT ---------------------------------------------------------------
