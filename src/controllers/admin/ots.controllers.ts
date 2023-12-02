@@ -171,6 +171,18 @@ export const GetOT = async (req: Request, res: Response) => {
                         id: true
                     }
                 },
+                tecnicos_ot: {
+                    include: {
+                        user: {
+                            select: {
+                                name: true,
+                                lastname: true,
+                                email: true,
+                                id: true
+                            }
+                        }
+                    }
+                },
                 motivo_rechazo_solicitud: true,
                 presupuestoOt: true,
                 motivo_rechazo_solicitud_cliente: true,
@@ -541,6 +553,35 @@ export const CreateOt0 = async (req: Request, res: Response) => {
         await EmailSender(emailData);
 
         return res.status(200).json({ message: "OT creada correctamente", solicitud: newSolicitud });
+
+    } catch (error: any) {
+        return res.status(400).json({error: error.message})
+    }
+}
+
+export const ChangeDateBeginEnd = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { date_begin, date_end } = req.body;
+
+        if (!date_begin) throw new Error('Fecha de inicio no válida')
+        if (!date_end) throw new Error('Fecha de término no válida')
+
+        // Las fechas deben ser mayor o igual a la fecha actual y la fecha de fin debe ser mayor a la fecha de inicio
+        // Obtener la fecha actual pero a las 00:00:00
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        
+        if (new Date(date_begin) < new Date()) throw new Error('Fecha de inicio no válida')
+        if (new Date(date_end) < new Date()) throw new Error('Fecha de término no válida')
+        if (new Date(date_end) < new Date(date_begin)) throw new Error('Fecha de término no válida')
+
+        const ot = await prisma.solicitud.findUnique({ where: { id: Number(id) } })
+        if (!ot) throw new Error('OT no encontrada')
+
+        await prisma.solicitud.update({ where: { id: Number(id) }, data: { date_begin: new Date(date_begin), date_end: new Date(date_end) } })
+
+        return res.json({ message: 'Fechas actualizadas correctamente' })
 
     } catch (error: any) {
         return res.status(400).json({error: error.message})

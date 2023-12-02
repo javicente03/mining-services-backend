@@ -10,6 +10,9 @@ import otsRouter from './routes/ots.routes';
 import usersAdminRouter from './routes/admin/users.routes';
 import companiesAdminRouter from './routes/admin/companies.routes';
 import formsAdminRouter from './routes/admin/forms.routes';
+import adminActivitiesRouter from './routes/admin/activities.routes';
+import tecnicosAdminRouter from './routes/admin/tecnicos.routes';
+import insumosRouterAdmin from './routes/admin/insumos.routes';
 
 const app = express();
 
@@ -43,5 +46,8 @@ app.use('/api/admin/ots', otsRouterAdmin);
 app.use('/api/admin/users', usersAdminRouter);
 app.use('/api/admin/companies', companiesAdminRouter);
 app.use('/api/admin/forms', formsAdminRouter);
+app.use('/api/admin/activities', adminActivitiesRouter);
+app.use('/api/admin/tecnicos', tecnicosAdminRouter);
+app.use('/api/admin/insumos', insumosRouterAdmin);
 
 export default app;

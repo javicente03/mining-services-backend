@@ -40,6 +40,7 @@ model User {
   recover_password Recover_Password[]
   solicitudes Solicitud[] @relation("user_solicitud")
   solicitudes_created_admin Solicitud[] @relation("admin_created_solicitud")
+  tecnicos_ot Tecnicos_OT[]
 }
 
 model Recover_Password {
@@ -130,6 +131,8 @@ model Solicitud {
   createdById Int?
   createdBy User? @relation(fields: [createdById], references: [id], name: "admin_created_solicitud")
   createdByAdmin Boolean @default(false)
+  date_begin DateTime?
+  date_end DateTime?
   presupuestoOt Presupuesto_OT? @relation(fields: [presupuestoOtId], references: [id])
   tipos_trabajos_solicitud Solicitud_Tipos_Trabajos[]
   equipo_trabajo_solicitud Solicitud_Equipo_Trabajo[]
@@ -139,6 +142,10 @@ model Solicitud {
   motivo_rechazo_solicitud Motivo_Rechazo_Solicitud[]
   motivo_rechazo_solicitud_cliente Motivo_Rechazo_Solicitud_Cliente[]
   ot_actividades_relation OT_Actividades_Relation[]
+  // tecnicos
+  tecnicos_ot Tecnicos_OT[]
+  // insumos
+  insumos_ot Insumos_OT[]
 }
 
 model Presupuesto_OT {
@@ -219,7 +226,6 @@ model Solicitud_Servicio_Terreno {
 model Actividades_OT {
   id        Int      @id @default(autoincrement())
   name    String   @db.VarChar(255)
-  description String @db.VarChar(2500)
   deleted   Boolean  @default(false)
   createdAt DateTime @default(now())
   subActividades SubActividades_OT[]
@@ -228,15 +234,13 @@ model Actividades_OT {
 
 model SubActividades_OT {
   id        Int      @id @default(autoincrement())
-  name    String   @db.VarChar(255)
   description String @db.VarChar(2500)
-  horas_hombre Int @default(0)
-  tiempo_real String @db.VarChar(255) @default("00:00")
-  varianza_hh Int @default(0)
+  horas_hombre Float @default(0)
   deleted   Boolean  @default(false)
   createdAt DateTime @default(now())
   actividadId    Int?
   actividad      Actividades_OT?    @relation(fields: [actividadId], references: [id])
+  otSubActividadesRelation OT_SubActividades_Relation[]
 }
 
 model OT_Actividades_Relation {
@@ -248,6 +252,58 @@ model OT_Actividades_Relation {
   finished Boolean @default(false)
   deleted   Boolean  @default(false)
   createdAt DateTime @default(now())
+  otSubActividadesRelation OT_SubActividades_Relation[]
+}
+
+model OT_SubActividades_Relation {
+  id        Int      @id @default(autoincrement())
+  otActividadRelationId    Int?
+  otActividadRelation      OT_Actividades_Relation?    @relation(fields: [otActividadRelationId], references: [id])
+  subActividadId    Int?
+  subActividad      SubActividades_OT?    @relation(fields: [subActividadId], references: [id])
+  horas_hombre Float @default(0)
+  tiempo_real Float @default(0)
+  varianza Float @default(0)
+  finished Boolean @default(false)
+  deleted   Boolean  @default(false)
+  createdAt DateTime @default(now())
 }
 
 // Fin Actividades OT ---------------------------------------------------------------
+
+// Tecnicos -------------------------------------------------------------------------
+
+model Tecnicos_OT {
+  id        Int      @id @default(autoincrement())
+  otId    Int?
+  ot      Solicitud?    @relation(fields: [otId], references: [id])
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id])
+}
+
+// INSUMOS -------------------------------------------------------------------------
+
+model Insumos {
+  id        Int      @id @default(autoincrement())
+  title    String   @db.VarChar(255)
+  description String @db.VarChar(2500)
+  modelo String @db.VarChar(255)
+  marca String @db.VarChar(255)
+  nro_componente Int @default(0)
+  year Int @default(0)
+  stock Int @default(0)
+  image String? @db.VarChar(255)
+  deleted   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  insumos_ot Insumos_OT[]
+}
+
+model Insumos_OT {
+  id        Int      @id @default(autoincrement())
+  otId    Int?
+  ot      Solicitud?    @relation(fields: [otId], references: [id])
+  insumoId    Int?
+  insumo      Insumos?    @relation(fields: [insumoId], references: [id])
+  cantidad Int @default(0)
+  createdAt DateTime @default(now())
+}
