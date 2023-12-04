@@ -173,3 +173,132 @@ export const GetInsumo = async (req: Request, res: Response) => {
         return res.status(400).json({ error: error.message });
     }
 }
+
+export const AddInsumoOt = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { insumoId, cantidad } = req.body;
+
+        if (!insumoId || !cantidad) throw new Error('Faltan datos');
+
+        if (isNaN(Number(cantidad))) throw new Error('Los datos no son correctos');
+        if (cantidad < 0) throw new Error('Los datos no son correctos');
+
+        const insumo = await prisma.insumos.findUnique({ where: { id: Number(insumoId) } });
+        if (!insumo) throw new Error('El insumo no existe');
+        if (insumo.deleted) throw new Error('El insumo ya fue eliminado');
+        if (insumo.stock < Number(cantidad)) throw new Error('No hay suficiente stock');
+
+        const ot = await prisma.solicitud.findUnique({ where: { id: Number(id) } });
+        if (!ot) throw new Error('La OT no existe');
+        if (!ot.isOT) throw new Error('La OT ya fue eliminada');
+
+        const insumoOt = await prisma.insumos_OT.findFirst({
+            where: {
+                insumoId: Number(insumoId),
+                otId: Number(id)
+            }
+        });
+
+        if (insumoOt) throw new Error('El insumo ya fue agregado');
+
+        await prisma.insumos_OT.create({
+            data: {
+                insumoId: Number(insumoId),
+                otId: Number(id),
+                cantidad
+            }
+        })
+
+        await prisma.insumos.update({
+            where: {
+                id: Number(insumoId)
+            },
+            data: {
+                stock: insumo.stock - Number(cantidad)
+            }
+        })
+
+        return res.status(200).json({ message: 'Insumo agregado correctamente' });
+
+    } catch (error: any) {
+        return res.status(400).json({ error: error.message });
+    }
+}
+
+export const DeleteInsumoOt = async (req: Request, res: Response) => {
+    try {
+        
+        const { id } = req.body;
+
+        const insumoOt = await prisma.insumos_OT.findUnique({ where: { id: Number(id) } });
+        if (!insumoOt) throw new Error('El insumo no existe');
+
+        await prisma.insumos_OT.delete({
+            where: {
+                id: Number(id)
+            }
+        })
+
+        await prisma.insumos.update({
+            where: {
+                id: Number(insumoOt.insumoId)
+            },
+            data: {
+                stock: {
+                    increment: insumoOt.cantidad
+                }
+            }
+        })
+
+        return res.status(200).json({ message: 'Insumo eliminado correctamente' });
+
+    } catch (error: any) {
+        return res.status(400).json({ error: error.message });
+    }
+}
+
+export const UpdateInsumoOt = async (req: Request, res: Response) => {
+    try {
+        
+        const { id, cantidad } = req.body;
+
+        if (!cantidad) throw new Error('Faltan datos');
+
+        if (isNaN(Number(cantidad))) throw new Error('Los datos no son correctos');
+        if (cantidad < 0) throw new Error('Los datos no son correctos');
+
+        const insumoOt = await prisma.insumos_OT.findUnique({ where: { id: Number(id) }, include: { insumo: true } });
+        if (!insumoOt) throw new Error('El insumo no existe');
+        if (!insumoOt.insumo) throw new Error('El insumo no existe');
+        const diff = Number(cantidad) - insumoOt.cantidad;
+        // Si es positivo, se resta al stock
+        if (diff > 0 && insumoOt.insumo.stock < diff) throw new Error('No hay suficiente stock');
+        
+        await prisma.insumos_OT.update({
+            where: {
+                id: Number(id)
+            },
+            data: {
+                cantidad: Number(cantidad)
+            }
+        })
+        
+        await prisma.insumos.update({
+            where: {
+                id: Number(insumoOt.insumoId)
+            },
+            data: {
+                stock: {
+                    ...(diff >= 0 && { decrement: diff }),
+                    ...(diff < 0 && { increment: Math.abs(diff) })
+                }
+            }
+        })
+
+        return res.status(200).json({ message: 'Insumo actualizado correctamente' });
+
+    } catch (error: any) {
+        return res.status(400).json({ error: error.message });
+    }
+}

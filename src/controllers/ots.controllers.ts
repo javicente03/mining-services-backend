@@ -77,6 +77,33 @@ export const GetMyOts = async (req: Request, res: Response) => {
                         phone: true,
                         thumbnail: true,
                     }
+                },
+                ot_actividades_relation: {
+                    where: {
+                        deleted: false
+                    },
+                    include: {
+                        actividad: true,
+                        otSubActividadesRelation: {
+                            include: {
+                                subActividad: true
+                            }
+                        }
+                    }
+                },
+                tecnicos_ot: {
+                    include: {
+                        user: {
+                            select: {
+                                name: true,
+                                lastname: true,
+                                thumbnail: true,
+                                rut: true,
+                                email: true,
+                                cargo: true,
+                            }
+                        }
+                    }
                 }
             },
             skip: skip ? Number(skip) : 0,
@@ -97,6 +124,13 @@ export const GetMyOts = async (req: Request, res: Response) => {
 
             if (request.user) {
                 request.user.thumbnail = request.user.thumbnail ? `${config.DOMAIN_BUCKET_AWS}${request.user.thumbnail}` : null;
+            }
+
+            for (let j = 0; j < request.tecnicos_ot.length; j++) {
+                const tec = request.tecnicos_ot[j];
+                if (tec.user) {
+                    tec.user.thumbnail = tec.user.thumbnail ? `${config.DOMAIN_BUCKET_AWS}${tec.user.thumbnail}` : null;
+                }
             }
         } 
 

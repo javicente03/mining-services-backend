@@ -13,6 +13,10 @@ import formsAdminRouter from './routes/admin/forms.routes';
 import adminActivitiesRouter from './routes/admin/activities.routes';
 import tecnicosAdminRouter from './routes/admin/tecnicos.routes';
 import insumosRouterAdmin from './routes/admin/insumos.routes';
+import lubricantesAdminRouter from './routes/admin/lubricantes.routes';
+import alistamientoAdminRouter from './routes/admin/alistamiento.routes';
+import trabajosExternosAdminRouter from './routes/admin/trabajos_externos.routes';
+import childrenOtAdminRouter from './routes/admin/children.routes';
 
 const app = express();
 
@@ -49,5 +53,9 @@ app.use('/api/admin/forms', formsAdminRouter);
 app.use('/api/admin/activities', adminActivitiesRouter);
 app.use('/api/admin/tecnicos', tecnicosAdminRouter);
 app.use('/api/admin/insumos', insumosRouterAdmin);
+app.use('/api/admin/lubricantes', lubricantesAdminRouter);
+app.use('/api/admin/alistamiento', alistamientoAdminRouter);
+app.use('/api/admin/trabajos_externos', trabajosExternosAdminRouter);
+app.use('/api/admin/children/ots', childrenOtAdminRouter);
 
 export default app;

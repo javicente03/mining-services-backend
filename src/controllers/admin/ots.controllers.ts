@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
 import config from '../../config';
 import EmailSender from '../../helpers/email/sendEmail';
-import { EmailNuevaOTGeneradaAdminTemplate, EmailOTAprobadaPresupuestoTemplate, EmailSolicitudAprobadaPresupuestoTemplate, EmailSolicitudRechazadaTemplate } from '../../helpers/email/templates';
+import { EmailNuevaOTGeneradaAdminTemplate, EmailOTAprobadaPresupuestoTemplate, EmailSolicitudAprobadaClientePresupuestoTemplate, EmailSolicitudAprobadaPresupuestoTemplate, EmailSolicitudRechazadaClientePresupuestoTemplate, EmailSolicitudRechazadaTemplate } from '../../helpers/email/templates';
 import ObtainUser from '../../utils/obtainUser';
 import prisma from '../../utils/prismaClient'
 import { UploadArchiveToS3 } from '../../utils/UploadArchiveToS3';
@@ -76,6 +76,33 @@ export const GetOTs = async (req: Request, res: Response) => {
                 presupuestoOt: true,
                 motivo_rechazo_solicitud_cliente: true,
                 registro_fotografico_solicitud: true,
+                ot_actividades_relation: {
+                    where: {
+                        deleted: false
+                    },
+                    include: {
+                        actividad: true,
+                        otSubActividadesRelation: {
+                            include: {
+                                subActividad: true
+                            }
+                        }
+                    }
+                },
+                tecnicos_ot: {
+                    include: {
+                        user: {
+                            select: {
+                                name: true,
+                                lastname: true,
+                                thumbnail: true,
+                                rut: true,
+                                email: true,
+                                cargo: true,
+                            }
+                        }
+                    }
+                }
             },
             skip: skip ? Number(skip) : 0,
             take: limit ? Number(limit) : undefined,
@@ -95,6 +122,13 @@ export const GetOTs = async (req: Request, res: Response) => {
 
             if (request.user) {
                 request.user.thumbnail = request.user.thumbnail ? `${config.DOMAIN_BUCKET_AWS}${request.user.thumbnail}` : null;
+            }
+
+            for (let j = 0; j < request.tecnicos_ot.length; j++) {
+                const tec = request.tecnicos_ot[j];
+                if (tec.user) {
+                    tec.user.thumbnail = tec.user.thumbnail ? `${config.DOMAIN_BUCKET_AWS}${tec.user.thumbnail}` : null;
+                }
             }
         }
 
@@ -187,6 +221,14 @@ export const GetOT = async (req: Request, res: Response) => {
                 presupuestoOt: true,
                 motivo_rechazo_solicitud_cliente: true,
                 registro_fotografico_solicitud: true,
+                insumos_ot: {
+                    include: {
+                        insumo: true
+                    }
+                },
+                lubricantes_ot: true,
+                alistamiento_ot: true,
+                trabajo_externo_ot: true,
             }
         })
 
@@ -212,9 +254,11 @@ export const AssingBudget = async (req: Request, res: Response) => {
         const { status, date, cost, motivo_rechazo, lavado, evaluacion, desarme_evaluacion, informe_tecnico, tipo_componenteId } = req.body;
 
         if (status !== 'approved' && status !== 'rejected') throw new Error('Estado no válido')
-        if (!tipo_componenteId || isNaN(Number(tipo_componenteId))) throw new Error('Tipo de componente no válido')
-        const tipo_componente = await prisma.opciones_Componente_Solicitud.findUnique({ where: { id: Number(tipo_componenteId) } })
-        if (!tipo_componente) throw new Error('Tipo de componente no encontrado')
+        if (status === 'approved') {
+            if (!tipo_componenteId || isNaN(Number(tipo_componenteId))) throw new Error('Tipo de componente no válido')
+            const tipo_componente = await prisma.opciones_Componente_Solicitud.findUnique({ where: { id: Number(tipo_componenteId) } })
+            if (!tipo_componente) throw new Error('Tipo de componente no encontrado')
+        }
         // La fecha debe ser mayor o igual a la fecha actual
 
         const ot = await prisma.solicitud.findUnique({ where: { id: Number(id) }, include: { user: true } })
@@ -234,7 +278,7 @@ export const AssingBudget = async (req: Request, res: Response) => {
 
             const budget = await prisma.presupuesto_OT.create({
                 data: {
-                    tipo_componenteId: tipo_componente?.id,
+                    tipo_componenteId: status === 'approved' ? Number(tipo_componenteId) : null,
                     lavado: lavado ? true : false,
                     cost: Number(cost),
                     date: new Date(date),
@@ -585,5 +629,70 @@ export const ChangeDateBeginEnd = async (req: Request, res: Response) => {
 
     } catch (error: any) {
         return res.status(400).json({error: error.message})
+    }
+}
+
+export const AceptOrRejectBudget = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { status, motivo_rechazo } = req.body;
+
+        const solicitud = await prisma.solicitud.findFirst({ where: { id: Number(id) }, include: { user: true } });
+        if (!solicitud) throw new Error("Solicitud no encontrada");
+        if (solicitud.status_ot !== 'approved') throw new Error("La solicitud no tiene un presupuesto aprobado");
+
+        if (status !== 'approved' && status !== 'rejected') throw new Error("Debe enviar un estado válido");
+
+        if (status === 'rejected' && (!motivo_rechazo || motivo_rechazo.trim() === "")) throw new Error("Debe enviar un motivo de rechazo");
+
+        await prisma.solicitud.update({ where: { id: solicitud.id }, data: { status_ot: status === 'approved' ? 'in_process' : 'rejected',
+            isOT: status === 'approved' ? true : false
+        } });
+
+        if (status === 'rejected') {
+            await prisma.motivo_Rechazo_Solicitud_Cliente.create({
+                data: {
+                    description: motivo_rechazo,
+                    solicitudId: solicitud.id
+                }
+            });
+
+            await prisma.solicitud.update({ where: { id: solicitud.id }, data: { status: 'rejected' } });
+        }
+
+        const emailsAdmin = await prisma.user.findMany({ where: { role: 'admin' } });
+        const emailsTo = [];
+        for (let i = 0; i < emailsAdmin.length; i++) {
+            const admin = emailsAdmin[i];
+            emailsTo.push(admin.email);
+        }
+        if (status === 'approved') {
+            const html = EmailSolicitudAprobadaClientePresupuestoTemplate(solicitud);
+            const emailData: Models.Email = {
+                from: config.SMTP_FROM || '',
+                to: emailsTo,
+                html: html,
+                subject: 'Mining Service - Presupuesto aceptado',
+                text: 'Mining Service - Presupuesto aceptado'
+            }
+    
+            await EmailSender(emailData);
+        } else {
+            const html = EmailSolicitudRechazadaClientePresupuestoTemplate(solicitud);
+            const emailData: Models.Email = {
+                from: config.SMTP_FROM || '',
+                to: emailsTo,
+                html: html,
+                subject: 'Mining Service - Solicitud rechazada',
+                text: 'Mining Service - Solicitud rechazada'
+            }
+    
+            await EmailSender(emailData);
+        }
+
+        return res.status(200).json({ message: "Solicitud actualizada correctamente", status: status });
+
+    } catch (error: any) {
+        return res.status(400).json({ error: error.message });
     }
 }

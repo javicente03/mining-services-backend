@@ -133,6 +133,10 @@ model Solicitud {
   createdByAdmin Boolean @default(false)
   date_begin DateTime?
   date_end DateTime?
+  isChild Boolean @default(false)
+  fatherId Int?
+  father Solicitud? @relation(fields: [fatherId], references: [id], name: "ot_children")
+  children Solicitud[] @relation("ot_children")
   presupuestoOt Presupuesto_OT? @relation(fields: [presupuestoOtId], references: [id])
   tipos_trabajos_solicitud Solicitud_Tipos_Trabajos[]
   equipo_trabajo_solicitud Solicitud_Equipo_Trabajo[]
@@ -146,6 +150,12 @@ model Solicitud {
   tecnicos_ot Tecnicos_OT[]
   // insumos
   insumos_ot Insumos_OT[]
+  // lubricantes
+  lubricantes_ot Lubicrantes_OT[]
+  // alistamiento
+  alistamiento_ot Alistamiento_OT[]
+  // trabajo externo
+  trabajo_externo_ot Trabajo_Externo_OT[]
 }
 
 model Presupuesto_OT {
@@ -306,4 +316,43 @@ model Insumos_OT {
   insumo      Insumos?    @relation(fields: [insumoId], references: [id])
   cantidad Int @default(0)
   createdAt DateTime @default(now())
+}
+
+// Lubicrantes -------------------------------------------------------------------------
+
+model Lubicrantes_OT {
+  id       Int      @id @default(autoincrement())
+  otId    Int?
+  ot      Solicitud?    @relation(fields: [otId], references: [id])
+  code String @db.VarChar(255)
+  lts Int?
+  name String @db.VarChar(255)
+}
+
+model Alistamiento_OT {
+  id       Int      @id @default(autoincrement())
+  otId    Int?
+  ot      Solicitud?    @relation(fields: [otId], references: [id])
+  code String @db.VarChar(255)
+  name String @db.VarChar(255)
+}
+
+// Trabajo Externo -------------------------------------------------------------------------
+
+model Trabajo_Externo_OT {
+  id      Int      @id @default(autoincrement())
+  otId    Int?
+  ot      Solicitud?    @relation(fields: [otId], references: [id])
+  type String @db.VarChar(500)
+  code_type String @db.VarChar(255)
+  items Trabajo_Externo_Item[]
+}
+
+model Trabajo_Externo_Item {
+  id      Int      @id @default(autoincrement())
+  trabajoExternoId    Int?
+  trabajoExterno      Trabajo_Externo_OT?    @relation(fields: [trabajoExternoId], references: [id])
+  code String @db.VarChar(255)
+  name String @db.VarChar(255)
+  text String @db.VarChar(255)
 }
